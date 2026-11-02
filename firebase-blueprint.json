@@ -1,0 +1,429 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user display metadata without sensitive PII.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the account owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public display name of the engineer.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Avatar image URL from Google Auth.",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was last updated."
+        }
+      },
+      "required": ["uid", "displayName", "photoURL", "createdAt", "updatedAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A legacy software refactoring project owned by an authenticated engineer.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the owning engineer.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable repository or project name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief project overview and modernization objective.",
+          "maxLength": 600
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "description": "Primary legacy source language.",
+          "enum": ["COBOL", "Java 8", "PHP", "Mixed"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "targetFramework": {
+          "type": "string",
+          "description": "Target modern framework.",
+          "enum": ["React", "Rust", "Node.js"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "repoUrl": {
+          "type": "string",
+          "description": "Optional public GitHub repository URL.",
+          "maxLength": 300
+        },
+        "lifecycleStatus": {
+          "type": "string",
+          "description": "Current project lifecycle state.",
+          "enum": ["active", "archived"],
+          "minLength": 1,
+          "maxLength": 24
+        },
+        "moduleCount": {
+          "type": "integer",
+          "description": "Count of legacy modules attached to this project."
+        },
+        "vulnerabilityCount": {
+          "type": "integer",
+          "description": "Total detected security vulnerabilities across modules."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest modification."
+        }
+      },
+      "required": [
+        "ownerId",
+        "name",
+        "description",
+        "sourceLanguage",
+        "targetFramework",
+        "repoUrl",
+        "lifecycleStatus",
+        "moduleCount",
+        "vulnerabilityCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CodeModule": {
+      "title": "CodeModule",
+      "description": "An individual legacy source file and its modernized code and unit test suite.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the owning engineer.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "ID of the parent Refactoring Project.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "Original legacy source file path.",
+          "minLength": 1,
+          "maxLength": 260
+        },
+        "sourceLanguage": {
+          "type": "string",
+          "description": "Detected legacy source language.",
+          "enum": ["COBOL", "Java 8", "PHP", "Mixed"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "targetFramework": {
+          "type": "string",
+          "description": "Target modern framework.",
+          "enum": ["React", "Rust", "Node.js"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "legacyCode": {
+          "type": "string",
+          "description": "Original legacy source code.",
+          "minLength": 1,
+          "maxLength": 150000
+        },
+        "modernizedCode": {
+          "type": "string",
+          "description": "Refactored modern code generated by Gemini.",
+          "maxLength": 150000
+        },
+        "modernizedFilePath": {
+          "type": "string",
+          "description": "Recommended file path in the modernized repository.",
+          "maxLength": 260
+        },
+        "unitTestCode": {
+          "type": "string",
+          "description": "Generated executable unit tests for the modernized module.",
+          "maxLength": 150000
+        },
+        "unitTestFilePath": {
+          "type": "string",
+          "description": "Recommended file path for the generated unit test suite.",
+          "maxLength": 260
+        },
+        "summary": {
+          "type": "string",
+          "description": "Architectural migration summary and debt reduction rationale.",
+          "maxLength": 4000
+        },
+        "refactoringNotes": {
+          "type": "array",
+          "description": "Bounded list of up to 15 architectural transformation notes."
+        },
+        "vulnerabilityCount": {
+          "type": "integer",
+          "description": "Number of security vulnerabilities detected in this module."
+        },
+        "lifecycleStatus": {
+          "type": "string",
+          "description": "Module state: draft, modernized, or terminal archived.",
+          "enum": ["draft", "modernized", "archived"],
+          "minLength": 1,
+          "maxLength": 24
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
+        }
+      },
+      "required": [
+        "ownerId",
+        "projectId",
+        "filePath",
+        "sourceLanguage",
+        "targetFramework",
+        "legacyCode",
+        "modernizedCode",
+        "modernizedFilePath",
+        "unitTestCode",
+        "unitTestFilePath",
+        "summary",
+        "refactoringNotes",
+        "vulnerabilityCount",
+        "lifecycleStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Vulnerability": {
+      "title": "Vulnerability",
+      "description": "A security exploit or CWE flaw identified in a legacy module with remediation details.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the owning engineer.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Parent project ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "moduleId": {
+          "type": "string",
+          "description": "Associated CodeModule ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "File path where the exploit was discovered.",
+          "minLength": 1,
+          "maxLength": 260
+        },
+        "cwe": {
+          "type": "string",
+          "description": "CWE identifier such as CWE-89.",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "severity": {
+          "type": "string",
+          "description": "Exploit severity classification.",
+          "enum": ["Critical", "High", "Medium", "Low"],
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "title": {
+          "type": "string",
+          "description": "Concise exploit title.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "lineRange": {
+          "type": "string",
+          "description": "Legacy source line range (e.g. Lines 42-58).",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed exploit vector and technical impact.",
+          "minLength": 1,
+          "maxLength": 2500
+        },
+        "remediation": {
+          "type": "string",
+          "description": "How the modernized code neutralizes the exploit.",
+          "minLength": 1,
+          "maxLength": 2500
+        },
+        "resolutionStatus": {
+          "type": "string",
+          "description": "Audit status: open or terminal remediated.",
+          "enum": ["open", "remediated"],
+          "minLength": 1,
+          "maxLength": 24
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update."
+        }
+      },
+      "required": [
+        "ownerId",
+        "projectId",
+        "moduleId",
+        "filePath",
+        "cwe",
+        "severity",
+        "title",
+        "lineRange",
+        "description",
+        "remediation",
+        "resolutionStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "An immutable turn in the project's contextual Gemini engineering chat thread.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the owning engineer.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Parent project ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "description": "Speaker role in conversation.",
+          "enum": ["user", "model"],
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "content": {
+          "type": "string",
+          "description": "Markdown message body.",
+          "minLength": 1,
+          "maxLength": 60000
+        },
+        "persona": {
+          "type": "string",
+          "description": "Active system instruction persona.",
+          "enum": ["architect", "security", "testing"],
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "modelTier": {
+          "type": "string",
+          "description": "Gemini model used for this turn.",
+          "enum": ["gemini-4-argon", "gemini-3.8-flash", "gemini-3.1-flash-lite"],
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "highThinking": {
+          "type": "boolean",
+          "description": "Whether ThinkingLevel.HIGH was enabled."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        }
+      },
+      "required": [
+        "ownerId",
+        "projectId",
+        "role",
+        "content",
+        "persona",
+        "modelTier",
+        "highThinking",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Owner-isolated user profile metadata without PII."
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Top-level refactoring projects isolated strictly by ownerId."
+    },
+    "/projects/{projectId}/modules/{moduleId}": {
+      "schema": "CodeModule",
+      "description": "Legacy source files and modernized code artifacts scoped to a project."
+    },
+    "/projects/{projectId}/vulnerabilities/{vulnId}": {
+      "schema": "Vulnerability",
+      "description": "Detected security exploits and remediation status scoped to a project."
+    },
+    "/projects/{projectId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Immutable multi-turn Gemini engineering chat messages scoped to a project."
+    }
+  }
+}

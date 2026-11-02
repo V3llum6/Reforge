@@ -1,0 +1,359 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 4.1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isProjectOwner(projectId) {
+      return (
+        exists(/databases/$(database)/documents/projects/$(projectId)) &&
+        get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid
+      ) || (
+        existsAfter(/databases/$(database)/documents/projects/$(projectId)) &&
+        getAfter(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    function moduleExistsInProject(projectId, moduleId) {
+      return exists(/databases/$(database)/documents/projects/$(projectId)/modules/$(moduleId)) ||
+        existsAfter(/databases/$(database)/documents/projects/$(projectId)/modules/$(moduleId));
+    }
+
+    // Validation Blueprint: UserProfile
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'photoURL', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.uid == request.auth.uid &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+        data.photoURL is string && data.photoURL.size() <= 500 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: Project
+    function isValidProject(data) {
+      return data.keys().hasAll([
+          'ownerId', 'name', 'description', 'sourceLanguage', 'targetFramework',
+          'repoUrl', 'lifecycleStatus', 'moduleCount', 'vulnerabilityCount', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'name', 'description', 'sourceLanguage', 'targetFramework',
+          'repoUrl', 'lifecycleStatus', 'moduleCount', 'vulnerabilityCount', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.description is string && data.description.size() <= 600 &&
+        data.sourceLanguage is string && data.sourceLanguage.size() >= 1 && data.sourceLanguage.size() <= 32 &&
+        data.sourceLanguage in ['COBOL', 'Java 8', 'PHP', 'Mixed'] &&
+        data.targetFramework is string && data.targetFramework.size() >= 1 && data.targetFramework.size() <= 32 &&
+        data.targetFramework in ['React', 'Rust', 'Node.js'] &&
+        data.repoUrl is string && data.repoUrl.size() <= 300 &&
+        data.lifecycleStatus is string && data.lifecycleStatus.size() >= 1 && data.lifecycleStatus.size() <= 24 &&
+        data.lifecycleStatus in ['active', 'archived'] &&
+        data.moduleCount is int && data.moduleCount >= 0 && data.moduleCount <= 500 &&
+        data.vulnerabilityCount is int && data.vulnerabilityCount >= 0 && data.vulnerabilityCount <= 5000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: CodeModule
+    function isValidCodeModule(data) {
+      return data.keys().hasAll([
+          'ownerId', 'projectId', 'filePath', 'sourceLanguage', 'targetFramework',
+          'legacyCode', 'modernizedCode', 'modernizedFilePath', 'unitTestCode', 'unitTestFilePath',
+          'summary', 'refactoringNotes', 'vulnerabilityCount', 'lifecycleStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'projectId', 'filePath', 'sourceLanguage', 'targetFramework',
+          'legacyCode', 'modernizedCode', 'modernizedFilePath', 'unitTestCode', 'unitTestFilePath',
+          'summary', 'refactoringNotes', 'vulnerabilityCount', 'lifecycleStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 && data.projectId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.filePath is string && data.filePath.size() >= 1 && data.filePath.size() <= 260 &&
+        data.sourceLanguage is string && data.sourceLanguage.size() >= 1 && data.sourceLanguage.size() <= 32 &&
+        data.sourceLanguage in ['COBOL', 'Java 8', 'PHP', 'Mixed'] &&
+        data.targetFramework is string && data.targetFramework.size() >= 1 && data.targetFramework.size() <= 32 &&
+        data.targetFramework in ['React', 'Rust', 'Node.js'] &&
+        data.legacyCode is string && data.legacyCode.size() >= 1 && data.legacyCode.size() <= 150000 &&
+        data.modernizedCode is string && data.modernizedCode.size() <= 150000 &&
+        data.modernizedFilePath is string && data.modernizedFilePath.size() <= 260 &&
+        data.unitTestCode is string && data.unitTestCode.size() <= 150000 &&
+        data.unitTestFilePath is string && data.unitTestFilePath.size() <= 260 &&
+        data.summary is string && data.summary.size() <= 4000 &&
+        data.refactoringNotes is list && data.refactoringNotes.size() <= 15 &&
+        (data.refactoringNotes.size() == 0 || (data.refactoringNotes[0] is string && data.refactoringNotes[0].size() <= 600)) &&
+        data.vulnerabilityCount is int && data.vulnerabilityCount >= 0 && data.vulnerabilityCount <= 100 &&
+        data.lifecycleStatus is string && data.lifecycleStatus.size() >= 1 && data.lifecycleStatus.size() <= 24 &&
+        data.lifecycleStatus in ['draft', 'modernized', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: Vulnerability
+    function isValidVulnerability(data) {
+      return data.keys().hasAll([
+          'ownerId', 'projectId', 'moduleId', 'filePath', 'cwe', 'severity',
+          'title', 'lineRange', 'description', 'remediation', 'resolutionStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'projectId', 'moduleId', 'filePath', 'cwe', 'severity',
+          'title', 'lineRange', 'description', 'remediation', 'resolutionStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 && data.projectId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.moduleId is string && data.moduleId.size() >= 1 && data.moduleId.size() <= 128 && data.moduleId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.filePath is string && data.filePath.size() >= 1 && data.filePath.size() <= 260 &&
+        data.cwe is string && data.cwe.size() >= 1 && data.cwe.size() <= 32 &&
+        data.severity is string && data.severity.size() >= 1 && data.severity.size() <= 16 &&
+        data.severity in ['Critical', 'High', 'Medium', 'Low'] &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+        data.lineRange is string && data.lineRange.size() >= 1 && data.lineRange.size() <= 64 &&
+        data.description is string && data.description.size() >= 1 && data.description.size() <= 2500 &&
+        data.remediation is string && data.remediation.size() >= 1 && data.remediation.size() <= 2500 &&
+        data.resolutionStatus is string && data.resolutionStatus.size() >= 1 && data.resolutionStatus.size() <= 24 &&
+        data.resolutionStatus in ['open', 'remediated'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: ChatMessage
+    function isValidChatMessage(data) {
+      return data.keys().hasAll([
+          'ownerId', 'projectId', 'role', 'content', 'persona', 'modelTier', 'highThinking', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'projectId', 'role', 'content', 'persona', 'modelTier', 'highThinking', 'createdAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 && data.projectId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.role is string && data.role.size() >= 1 && data.role.size() <= 16 &&
+        data.role in ['user', 'model'] &&
+        data.content is string && data.content.size() >= 1 && data.content.size() <= 60000 &&
+        data.persona is string && data.persona.size() >= 1 && data.persona.size() <= 32 &&
+        data.persona in ['architect', 'security', 'testing'] &&
+        data.modelTier is string && data.modelTier.size() >= 1 && data.modelTier.size() <= 64 &&
+        data.modelTier in ['gemini-4-argon', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'] &&
+        data.highThinking is bool &&
+        data.createdAt is timestamp;
+    }
+
+    // Collection 1: /users/{userId}
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && userId == request.auth.uid;
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        isValidUserProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+
+      allow delete: if false;
+    }
+
+    // Collection 2: /projects/{projectId}
+    match /projects/{projectId} {
+      allow get: if isSignedIn() && isValidId(projectId) && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(projectId) &&
+        isValidProject(incoming()) &&
+        incoming().lifecycleStatus == 'active' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser() &&
+        isValidId(projectId) &&
+        isValidProject(incoming()) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        existing().lifecycleStatus != 'archived' && (
+          // Action 1: Update Project Metadata or Counters
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'name', 'description', 'targetFramework', 'moduleCount', 'vulnerabilityCount', 'updatedAt'
+          ]) ||
+          // Action 2: Archive Project (Terminal Transition)
+          (
+            incoming().lifecycleStatus == 'archived' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['lifecycleStatus', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(projectId) && existing().ownerId == request.auth.uid;
+
+      // Subcollection 2A: /projects/{projectId}/modules/{moduleId}
+      match /modules/{moduleId} {
+        allow get: if isSignedIn() &&
+          isValidId(projectId) &&
+          isValidId(moduleId) &&
+          existing().ownerId == request.auth.uid &&
+          isProjectOwner(projectId);
+
+        allow list: if isSignedIn() &&
+          isValidId(projectId) &&
+          resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(moduleId) &&
+          isValidCodeModule(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProjectOwner(projectId);
+
+        allow update: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(moduleId) &&
+          isValidCodeModule(incoming()) &&
+          existing().ownerId == request.auth.uid &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().projectId == existing().projectId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          existing().lifecycleStatus != 'archived' &&
+          isProjectOwner(projectId) && (
+            // Action 1: Save Refactored Artifacts & Test Suite
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'targetFramework', 'modernizedCode', 'modernizedFilePath',
+              'unitTestCode', 'unitTestFilePath', 'summary', 'refactoringNotes',
+              'vulnerabilityCount', 'lifecycleStatus', 'updatedAt'
+            ]) ||
+            // Action 2: Update Legacy Source Before Re-run
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'legacyCode', 'lifecycleStatus', 'updatedAt'
+            ]) ||
+            // Action 3: Archive Module (Terminal Transition)
+            (
+              incoming().lifecycleStatus == 'archived' &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['lifecycleStatus', 'updatedAt'])
+            )
+          );
+
+        allow delete: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(moduleId) &&
+          existing().ownerId == request.auth.uid &&
+          isProjectOwner(projectId);
+      }
+
+      // Subcollection 2B: /projects/{projectId}/vulnerabilities/{vulnId}
+      match /vulnerabilities/{vulnId} {
+        allow get: if isSignedIn() &&
+          isValidId(projectId) &&
+          isValidId(vulnId) &&
+          existing().ownerId == request.auth.uid &&
+          isProjectOwner(projectId);
+
+        allow list: if isSignedIn() &&
+          isValidId(projectId) &&
+          resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(vulnId) &&
+          isValidVulnerability(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          isProjectOwner(projectId) &&
+          moduleExistsInProject(projectId, incoming().moduleId);
+
+        allow update: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(vulnId) &&
+          isValidVulnerability(incoming()) &&
+          existing().ownerId == request.auth.uid &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().projectId == existing().projectId &&
+          incoming().moduleId == existing().moduleId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          existing().resolutionStatus != 'remediated' &&
+          isProjectOwner(projectId) && (
+            // Action 1: Mark Vulnerability Remediated (Terminal Transition)
+            incoming().resolutionStatus == 'remediated' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['resolutionStatus', 'updatedAt'])
+          );
+
+        allow delete: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(vulnId) &&
+          existing().ownerId == request.auth.uid &&
+          isProjectOwner(projectId);
+      }
+
+      // Subcollection 2C: /projects/{projectId}/messages/{messageId}
+      match /messages/{messageId} {
+        allow get: if isSignedIn() &&
+          isValidId(projectId) &&
+          isValidId(messageId) &&
+          existing().ownerId == request.auth.uid &&
+          isProjectOwner(projectId);
+
+        allow list: if isSignedIn() &&
+          isValidId(projectId) &&
+          resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(messageId) &&
+          isValidChatMessage(incoming()) &&
+          incoming().projectId == projectId &&
+          incoming().createdAt == request.time &&
+          isProjectOwner(projectId);
+
+        allow update: if false;
+
+        allow delete: if isVerifiedUser() &&
+          isValidId(projectId) &&
+          isValidId(messageId) &&
+          existing().ownerId == request.auth.uid &&
+          isProjectOwner(projectId);
+      }
+    }
+  }
+}

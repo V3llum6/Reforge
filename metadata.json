@@ -1,0 +1,6 @@
+{
+  "name": "Reforge Studio",
+  "description": "Autonomous legacy code modernization platform that refactors COBOL, Java 8, and PHP repositories into React, Rust, and Node.js with automated unit tests, security exploit detection, and High-Thinking Gemini chat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
